@@ -97,18 +97,24 @@ public class JRootApp extends JPanel implements AppView,java.util.Observer {
     private String sJLVersion;
     private DatabaseMetaData md;
 
+    private static volatile JRootApp jRootApp;
+
     static {
         initOldClasses();
     }
     
     public JRootApp() {
-
+        jRootApp = this;
 // JG 16 May 2013 use multicatch
         m_aBeanFactories = new HashMap<>();
         // Inicializo los componentes visuales
         initComponents();
         initCustomComponents();
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(30, 30));
+    }
+
+    public static JRootApp getjRootApp() {
+        return jRootApp;
     }
 
     private void initCustomComponents() {

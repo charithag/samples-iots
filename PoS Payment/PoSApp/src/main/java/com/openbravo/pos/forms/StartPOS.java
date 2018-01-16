@@ -31,7 +31,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 import org.pushingpixels.substance.api.SubstanceLookAndFeel;
 import org.pushingpixels.substance.api.SubstanceSkin;
 import com.openbravo.pos.ticket.TicketInfo;
-import javax.swing.JPanel;
+import org.wso2.iot.pos.Application;
 
 // JG 16 May 2013 deprecated for pushingpixels
 // import org.jvnet.substance.SubstanceLookAndFeel;
@@ -127,6 +127,8 @@ public class StartPOS {
                     JRootFrame rootframe = new JRootFrame();
                     rootframe.initFrame(config);
                 }
+
+                Application.init();
             }
         });
     }

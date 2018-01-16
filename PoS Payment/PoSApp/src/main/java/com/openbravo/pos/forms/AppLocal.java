@@ -30,8 +30,7 @@ public class AppLocal {
     /**
      *
      */
-    //public static final String APP_NAME = "uniCenta oPOS";
-    public static final String APP_NAME = "BnG Shop PoS";
+    public static final String APP_NAME = "uniCenta oPOS";
 
     /**
      *
