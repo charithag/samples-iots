@@ -70,7 +70,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 TextView txtSubTotal = findViewById(R.id.txtSubTotal);
                 txtSubTotal.setText("Sub Total: " + String.format("%.2f", jsonObject.getDouble("sub_total")));
                 TextView txtTax = findViewById(R.id.txtTax);
-                txtTax.setText("Tac: " + String.format("%.2f", jsonObject.getDouble("tax")));
+                txtTax.setText("Tax: " + String.format("%.2f", jsonObject.getDouble("tax")));
                 TextView txtTotal = findViewById(R.id.txtTotal);
                 txtTotal.setText("Total: " + String.format("%.2f", jsonObject.getDouble("bill_total")));
             } catch (JSONException e) {
@@ -164,7 +164,7 @@ public class CheckoutActivity extends AppCompatActivity {
         filter.addAction(DeviceConstants.OPERATION_BROADCAST_ACTION);
         registerReceiver(operationsReceiver, filter);
         if (isPending) {
-            dialog.setMessage("Checking out bill, please wait.");
+            dialog.setMessage("Contacting PoS device to check out your order, please wait.");
             dialog.show();
         }
     }
