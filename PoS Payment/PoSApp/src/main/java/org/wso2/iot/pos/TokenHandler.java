@@ -83,7 +83,7 @@ public class TokenHandler {
             JSONParser jsonParser = new JSONParser();
             JSONObject jTokenResult = (JSONObject) jsonParser.parse(tokenResult);
             if (jTokenResult.containsKey("error")) {
-                String errorMsg = "Token renewal failed as " + jTokenResult.containsKey("error_description");
+                String errorMsg = "Token renewal failed. " + jTokenResult.get("error_description");
                 log.error(errorMsg);
                 throw new TokenRenewalException(errorMsg);
             }
