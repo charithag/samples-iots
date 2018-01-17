@@ -67,7 +67,7 @@ public class TokenHandler {
             httpPost.setHeader("Content-Type", APPLICATION_FORM_URLENCODED);
 
             StringEntity tokenEPPayload = new StringEntity(
-                    "grant_type=refresh_token&refresh_token=8e957016-8493-3a22-8f98-e9e8571c00ae",
+                    "grant_type=refresh_token&refresh_token=" + accessTokenInfo.getRefreshToken(),
                     "UTF-8");
             httpPost.setEntity(tokenEPPayload);
             String tokenResult;
@@ -82,6 +82,11 @@ public class TokenHandler {
             tokenResult = result.toString();
             JSONParser jsonParser = new JSONParser();
             JSONObject jTokenResult = (JSONObject) jsonParser.parse(tokenResult);
+            if (jTokenResult.containsKey("error")) {
+                String errorMsg = "Token renewal failed as " + jTokenResult.containsKey("error_description");
+                log.error(errorMsg);
+                throw new TokenRenewalException(errorMsg);
+            }
             accessTokenInfo.setAccessToken(jTokenResult.get("access_token").toString());
             accessTokenInfo.setRefreshToken(jTokenResult.get("refresh_token").toString());
             tokenRenewCallback.onTokenRenewed(accessTokenInfo);
@@ -93,5 +98,8 @@ public class TokenHandler {
         }
     }
 
+    public AccessTokenInfo getAccessTokenInfo(){
+        return accessTokenInfo;
+    }
 
 }

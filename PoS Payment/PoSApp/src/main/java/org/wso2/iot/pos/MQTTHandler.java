@@ -22,7 +22,6 @@ package org.wso2.iot.pos;
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.loader.Session;
 import com.openbravo.pos.customers.CustomerInfoExt;
-import com.openbravo.pos.customers.DataLogicCustomers;
 import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.sales.DataLogicReceipts;
 import com.openbravo.pos.ticket.ProductInfoExt;
@@ -97,13 +96,14 @@ public class MQTTHandler {
     private void connectWithBroker(TokenHandler tokenHandler) {
         Runnable connectionThread = () -> {
             MqttConnectOptions connOpts = new MqttConnectOptions();
+            AccessTokenInfo accessTokenInfo;
             try {
-                AccessTokenInfo accessTokenInfo = tokenHandler.renewTokens();
-                connOpts.setUserName(accessTokenInfo.getAccessToken());
+                accessTokenInfo = tokenHandler.renewTokens();
             } catch (TokenRenewalException e) {
-                log.error("Error occurred while renewing tokens.", e);
-                return;
+                log.error("Error occurred while renewing tokens. Using tokens from config.", e);
+                accessTokenInfo = tokenHandler.getAccessTokenInfo();
             }
+            connOpts.setUserName(accessTokenInfo.getAccessToken());
             connOpts.setPassword("".toCharArray());
             connOpts.setKeepAliveInterval(120);
             connOpts.setCleanSession(true);
