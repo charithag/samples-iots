@@ -27,14 +27,13 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.wso2.iot.pos.dto.AccessTokenInfo;
 import org.wso2.iot.pos.dto.ApiApplicationKey;
+import org.wso2.iot.pos.ui.QRJFrame;
 
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
 public class Application {
@@ -84,6 +83,7 @@ public class Application {
             }
         });
         mqttHandler = new MQTTHandler(mqttEndpoint, "carbon.super", deviceType, deviceId, tokenHandler);
+        new QRJFrame(deviceId).setVisible(true);
     }
 
     public static void init() {

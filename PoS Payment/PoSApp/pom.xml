@@ -335,6 +335,11 @@
             <artifactId>json</artifactId>
             <version>20151123</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.kenglxn.qrgen</groupId>
+            <artifactId>javase</artifactId>
+            <version>2.4.0</version>
+        </dependency>
     </dependencies>
     
     <build>
@@ -470,6 +475,11 @@
             <name>Netbeans Maven Repository</name>
             <url>http://bits.netbeans.org/maven2/</url>
             <layout>default</layout>
+        </repository>
+
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
         </repository>
 
     </repositories>
