@@ -1136,6 +1136,44 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @return
      * @throws BasicException
      */
+    public CustomerInfoExt searchCustomerExt(String searchKey) throws BasicException {
+        return (CustomerInfoExt) new PreparedSentence(s,
+                                                      "SELECT "
+                                                      + "ID, "
+                                                      + "TAXID, "
+                                                      + "SEARCHKEY, "
+                                                      + "NAME, "
+                                                      + "CARD, "
+                                                      + "TAXCATEGORY, "
+                                                      + "NOTES, "
+                                                      + "MAXDEBT, "
+                                                      + "VISIBLE, "
+                                                      + "CURDATE, "
+                                                      + "CURDEBT, "
+                                                      + "FIRSTNAME, "
+                                                      + "LASTNAME, "
+                                                      + "EMAIL, "
+                                                      + "PHONE, "
+                                                      + "PHONE2, "
+                                                      + "FAX, "
+                                                      + "ADDRESS, "
+                                                      + "ADDRESS2, "
+                                                      + "POSTAL, "
+                                                      + "CITY, "
+                                                      + "REGION, "
+                                                      + "COUNTRY, "
+                                                      + "IMAGE "
+                                                      + "FROM CUSTOMERS WHERE SEARCHKEY = ?",
+                                                      SerializerWriteString.INSTANCE,
+                                                      new CustomerExtRead()).find(searchKey);
+    }
+
+    /**
+     *
+     * @param id
+     * @return
+     * @throws BasicException
+     */
     public final boolean isCashActive(String id) throws BasicException {
 
         return new PreparedSentence(s,

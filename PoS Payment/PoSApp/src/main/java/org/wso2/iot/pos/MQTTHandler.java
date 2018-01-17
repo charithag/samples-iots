@@ -21,6 +21,8 @@ package org.wso2.iot.pos;
 
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.loader.Session;
+import com.openbravo.pos.customers.CustomerInfoExt;
+import com.openbravo.pos.customers.DataLogicCustomers;
 import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.sales.DataLogicReceipts;
 import com.openbravo.pos.ticket.ProductInfoExt;
@@ -145,7 +147,8 @@ public class MQTTHandler {
 
                 JSONObject checkoutRequest = new JSONObject(operation.getPayload());
                 String mobileId = checkoutRequest.getString("mobile_id");
-                TicketInfo ticket = addTicket(mobileId, checkoutRequest.getString("items").split(","));
+                TicketInfo ticket = addTicket(mobileId, checkoutRequest.getString("items").split(","),
+                                              checkoutRequest.getString("user"));
                 operation.setStatus(Operation.Status.COMPLETED);
                 JSONObject ticketObj = new JSONObject();
                 ticketObj.put("mobile_id", mobileId);
@@ -170,7 +173,7 @@ public class MQTTHandler {
         new Thread(messageHandler).start();
     }
 
-    private TicketInfo addTicket(String mobileId, String[] items) throws BasicException {
+    private TicketInfo addTicket(String mobileId, String[] items, String customer) throws BasicException {
         String response;
         Session session = Application.getInstance().getjRootApp().getSession();
 
@@ -183,7 +186,10 @@ public class MQTTHandler {
         ticketInfo.setUser(new UserInfo("3", "Guest"));
         ticketInfo.setProperty("mobile_id", mobileId);
         ticketInfo.setProperty("initial_id", ticketInfo.getId());
-
+        CustomerInfoExt customerInfoExt = dataLogicSales.searchCustomerExt(customer);
+        if (customerInfoExt != null) {
+            ticketInfo.setCustomer(customerInfoExt);
+        }
         for (String reference : items) {
             try {
                 ProductInfoExt productInfoExt = dataLogicSales.getProductInfoByReference(reference);
