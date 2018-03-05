@@ -25,5 +25,5 @@ then
     sleep 2
     ./start.sh &
 else
-    java -cp agent.jar:libs/* org.wso2.iot.agent.Application
+    java -cp agent.jar:libs/* org.wso2.iot.agent.AgentApplicationImpl
 fi
