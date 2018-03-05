@@ -61,20 +61,20 @@ import java.util.TimerTask;
 
 import static org.apache.commons.codec.CharEncoding.UTF_8;
 
-public class Application {
+public class AgentApplicationImpl implements AgentApplication {
 
     public static final String AGENT_VERSION = "v1.1.0";
 
     private static final double LATITUDE = 6.927079;
     private static final double LONGITUDE = 79.861244;
 
-    private static final Log log = LogFactory.getLog(Application.class);
+    private static final Log log = LogFactory.getLog(AgentApplicationImpl.class);
     private static final String CONFIG_FILE = "config.json";
     private static final String SIDDHI_FILE = "plan.siddhiql";
     private static final String UPGRADE_ZIP = "upgrade.zip";
     private static final String UPGRADE_INFO_FILE = "upgrade.info";
 
-    private static Application application;
+    private static AgentApplicationImpl application;
     private MQTTHandler mqttHandler;
     private TokenHandler tokenHandler;
     private SiddhiEngine siddhiEngine;
@@ -85,7 +85,7 @@ public class Application {
     private String deviceType;
     private String tenantDomain;
 
-    private Application() {
+    private AgentApplicationImpl() {
         initConfigs();
         initTransport();
         initSiddhiEngine();
@@ -99,12 +99,12 @@ public class Application {
     }
 
     public static void main(String[] args) {
-        application = new Application();
+        application = new AgentApplicationImpl();
         EventSimulator simulator = new EventSimulator(application.siddhiEngine);
         simulator.start();
     }
 
-    private void initSiddhiEngine() {
+    public void initSiddhiEngine() {
         String executionPlan = "define stream agentEventStream (EngineTemp double, humidity double, " +
                                "tractorSpeed double, loadWeight double, soilMoisture double, illumination double, " +
                                "fuelUsage double, engineidle bool, raining bool, temperature double);" +
@@ -163,51 +163,16 @@ public class Application {
         });
     }
 
-    private void initTransport() {
+    public void initTransport() {
         try {
-            mqttHandler = new MQTTHandler(mqttEndpoint, tenantDomain, deviceType, deviceId, tokenHandler,
-                                          operation -> {
-                                              switch (operation.getCode()) {
-                                                  case "EXEC_PLAN":
-                                                      updateSiddhiQuery(operation);
-                                                      break;
-                                                  case "FIRMWARE_UPGRADE":
-                                                      upgradeFirmware(operation);
-                                                      break;
-                                                  default:
-                                                      String message = "Unknown operation code: " + operation.getCode();
-                                                      log.warn(message);
-                                                      operation.setStatus(Operation.Status.ERROR);
-                                                      operation.setOperationResponse(message);
-                                              }
-                                          });
+            mqttHandler = new MQTTHandler(mqttEndpoint, tenantDomain, deviceType, deviceId, tokenHandler, this);
         } catch (TransportHandlerException e) {
             log.error("Error occurred when creating MQTT Client.", e);
             System.exit(1);
         }
     }
 
-    private void cleanUpFirmwareUpgrades() {
-        File upgradeInfo = new File(UPGRADE_INFO_FILE);
-        if (upgradeInfo.exists()) {
-            try {
-                String operationId = new String(Files.readAllBytes(upgradeInfo.toPath()));
-                org.json.JSONObject responseObj = new org.json.JSONObject();
-                responseObj.put("id", Integer.parseInt(operationId));
-                responseObj.put("status", Operation.Status.COMPLETED);
-                responseObj.put("operationResponse", "Upgraded to " + AGENT_VERSION);
-                mqttHandler.publishMessage(tenantDomain + "/" + deviceType + "/" + deviceId +
-                                           "/update/operation", responseObj.toString());
-            } catch (Exception e) {
-                log.error("Unable to process firmware upgrade info file.", e);
-            } finally {
-                log.info("Upgrade info removed: " + upgradeInfo.delete());
-            }
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void initConfigs() {
+    public void initConfigs() {
         ApiApplicationKey apiApplicationKey = new ApiApplicationKey();
         AccessTokenInfo accessTokenInfo = new AccessTokenInfo();
         try (BufferedReader bufferedReader = new BufferedReader(
@@ -227,19 +192,37 @@ public class Application {
             log.error("Error occurred when reading device details from json file.", e);
         }
 
-        tokenHandler = new TokenHandler(httpEndpoint + "/token", accessTokenInfo, apiApplicationKey,
-                                        updatedTokenInfo -> {
-                                            configData.put("accessToken", updatedTokenInfo.getAccessToken());
-                                            configData.put("refreshToken", updatedTokenInfo.getRefreshToken());
-                                            try (Writer writer = new BufferedWriter(new OutputStreamWriter(
-                                                    new FileOutputStream(CONFIG_FILE), UTF_8))) {
-                                                writer.write(configData.toJSONString());
-                                                writer.close();
-                                            } catch (IOException e) {
-                                                log.error("Error occurred when writing device details to " +
-                                                          "config json file.", e);
-                                            }
-                                        });
+        tokenHandler = new TokenHandler(httpEndpoint + "/token", accessTokenInfo, apiApplicationKey, this);
+    }
+
+    public void onOperationReceived(Operation operation) {
+        switch (operation.getCode()) {
+            case "EXEC_PLAN":
+                updateSiddhiQuery(operation);
+                break;
+            case "FIRMWARE_UPGRADE":
+                upgradeFirmware(operation);
+                break;
+            default:
+                String message = "Unknown operation code: " + operation.getCode();
+                log.warn(message);
+                operation.setStatus(Operation.Status.ERROR);
+                operation.setOperationResponse(message);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void onTokenRenewed(AccessTokenInfo updatedTokenInfo) {
+        configData.put("accessToken", updatedTokenInfo.getAccessToken());
+        configData.put("refreshToken", updatedTokenInfo.getRefreshToken());
+        try (Writer writer = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(CONFIG_FILE), UTF_8))) {
+            writer.write(configData.toJSONString());
+            writer.close();
+        } catch (IOException e) {
+            log.error("Error occurred when writing device details to " +
+                      "config json file.", e);
+        }
     }
 
     private void updatedProperties() {
@@ -307,6 +290,25 @@ public class Application {
             log.error("Error occurred when upgrading firmware.", e);
             operation.setOperationResponse(e.getMessage());
             operation.setStatus(Operation.Status.ERROR);
+        }
+    }
+
+    private void cleanUpFirmwareUpgrades() {
+        File upgradeInfo = new File(UPGRADE_INFO_FILE);
+        if (upgradeInfo.exists()) {
+            try {
+                String operationId = new String(Files.readAllBytes(upgradeInfo.toPath()));
+                org.json.JSONObject responseObj = new org.json.JSONObject();
+                responseObj.put("id", Integer.parseInt(operationId));
+                responseObj.put("status", Operation.Status.COMPLETED);
+                responseObj.put("operationResponse", "Upgraded to " + AGENT_VERSION);
+                mqttHandler.publishMessage(tenantDomain + "/" + deviceType + "/" + deviceId +
+                                           "/update/operation", responseObj.toString());
+            } catch (Exception e) {
+                log.error("Unable to process firmware upgrade info file.", e);
+            } finally {
+                log.info("Upgrade info removed: " + upgradeInfo.delete());
+            }
         }
     }
 

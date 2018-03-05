@@ -25,6 +25,9 @@ import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
 import org.wso2.siddhi.core.stream.input.InputHandler;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class SiddhiEngine {
 
     private static final Log log = LogFactory.getLog(SiddhiEngine.class);
@@ -33,6 +36,7 @@ public class SiddhiEngine {
     private SiddhiManager siddhiManager;
     private SiddhiAppRuntime siddhiAppRuntime;
     private boolean isRunning = false;
+    private Map<String, QueryCallback> queryCallbacks = new HashMap<>();
 
     public SiddhiEngine(String executionPlan) {
         this.executionPlan = executionPlan;
@@ -54,6 +58,7 @@ public class SiddhiEngine {
     public void addQueryCallback(String queryName, QueryCallback queryCallback) {
         //Adding callback to retrieve output events from query
         siddhiAppRuntime.addCallback(queryName, queryCallback);
+        queryCallbacks.put(queryName, queryCallback);
     }
 
     public InputHandler getInputHandler(String streamId) {
@@ -77,5 +82,6 @@ public class SiddhiEngine {
             shutdown();
         }
         init();
+        queryCallbacks.forEach((k, v) -> siddhiAppRuntime.addCallback(k, v));
     }
 }

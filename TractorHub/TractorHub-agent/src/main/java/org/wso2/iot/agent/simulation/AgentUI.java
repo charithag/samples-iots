@@ -17,7 +17,7 @@
  */
 package org.wso2.iot.agent.simulation;
 
-import org.wso2.iot.agent.Application;
+import org.wso2.iot.agent.AgentApplicationImpl;
 import org.wso2.iot.agent.analytics.SiddhiEngine;
 import org.wso2.siddhi.core.stream.input.InputHandler;
 
@@ -26,13 +26,53 @@ import javax.swing.*;
 public class AgentUI extends javax.swing.JFrame {
 
     private SiddhiEngine siddhiEngine;
-
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBox chkRaining;
+    private javax.swing.JCheckBox chkidle;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JButton jbtnTrigger;
+    private javax.swing.JLabel jlblEngineState;
+    private javax.swing.JLabel jlblEngineTemperature;
+    private javax.swing.JLabel jlblFuelLevel;
+    private javax.swing.JLabel jlblHumidity;
+    private javax.swing.JLabel jlblIllumination;
+    private javax.swing.JLabel jlblSoilMoisture;
+    private javax.swing.JLabel jlblTemperature;
+    private javax.swing.JLabel jlblTractorLoad;
+    private javax.swing.JLabel jlblTractorSpeed;
+    private javax.swing.JLabel jlblVersion;
+    private javax.swing.JPanel jpnlAlert;
+    private javax.swing.JPanel jpnlParameters;
+    private javax.swing.JSpinner spnrEngineTemperature;
+    private javax.swing.JSpinner spnrFuelLevel;
+    private javax.swing.JSpinner spnrHumidity;
+    private javax.swing.JSpinner spnrIllumination;
+    private javax.swing.JSpinner spnrInterval;
+    private javax.swing.JSpinner spnrSoilMoisture;
+    private javax.swing.JSpinner spnrTemperature;
+    private javax.swing.JSpinner spnrTractorLoad;
+    private javax.swing.JSpinner spnrTractorSpeed;
+    private javax.swing.JTextArea txtAlerts;
     /**
      * Creates new form Agent
      */
     public AgentUI(SiddhiEngine siddhiEngine) {
         initComponents();
-        jlblVersion.setText(Application.AGENT_VERSION);
+        jlblVersion.setText(AgentApplicationImpl.AGENT_VERSION);
+        this.siddhiEngine = siddhiEngine;
     }
 
     public double getEngineTemp() {
@@ -427,48 +467,7 @@ public class AgentUI extends javax.swing.JFrame {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
-    }//GEN-LAST:event_jbtnTriggerActionPerformed
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JCheckBox chkRaining;
-    private javax.swing.JCheckBox chkidle;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel10;
-    private javax.swing.JLabel jLabel12;
-    private javax.swing.JLabel jLabel13;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
-    private javax.swing.JLabel jLabel7;
-    private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JSeparator jSeparator1;
-    private javax.swing.JButton jbtnTrigger;
-    private javax.swing.JLabel jlblEngineState;
-    private javax.swing.JLabel jlblEngineTemperature;
-    private javax.swing.JLabel jlblFuelLevel;
-    private javax.swing.JLabel jlblHumidity;
-    private javax.swing.JLabel jlblIllumination;
-    private javax.swing.JLabel jlblSoilMoisture;
-    private javax.swing.JLabel jlblTemperature;
-    private javax.swing.JLabel jlblTractorLoad;
-    private javax.swing.JLabel jlblTractorSpeed;
-    private javax.swing.JLabel jlblVersion;
-    private javax.swing.JPanel jpnlAlert;
-    private javax.swing.JPanel jpnlParameters;
-    private javax.swing.JSpinner spnrEngineTemperature;
-    private javax.swing.JSpinner spnrFuelLevel;
-    private javax.swing.JSpinner spnrHumidity;
-    private javax.swing.JSpinner spnrIllumination;
-    private javax.swing.JSpinner spnrInterval;
-    private javax.swing.JSpinner spnrSoilMoisture;
-    private javax.swing.JSpinner spnrTemperature;
-    private javax.swing.JSpinner spnrTractorLoad;
-    private javax.swing.JSpinner spnrTractorSpeed;
-    private javax.swing.JTextArea txtAlerts;
+    }//GEN-LAST:event_jbtnTriggerActionPerformed
     // End of variables declaration//GEN-END:variables
 }
