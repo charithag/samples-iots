@@ -317,7 +317,7 @@
                                         <i class="material-icons">invert_colors</i>
                                     </div>
                                     <div class="card-content">
-                                        <p class="category">Raining</p>
+                                        <p class="category">Weather condition</p>
                                         <h3 class="title" id="rain_alert">Yet to be updated</h3>
                                     </div>
                                     <div class="card-footer">
@@ -739,7 +739,7 @@
 
     //set device details and send device details to dashboard.jsp
     document.getElementById("devName").innerHTML = "<%=device.getString("name")%>";
-    document.getElementById("devDetails").innerHTML = "Owned by " + "<%=enrolmentInfo.getString("owner")%>" + " and enrolled on " + "<%=new Date(enrolmentInfo.getLong("dateOfEnrolment")).toString()%> Version <%=version.getString("value")%>";
+    document.getElementById("devDetails").innerHTML = "Owned by " + "<%=enrolmentInfo.getString("owner")%>" + " and enrolled on " + "<%=new Date(enrolmentInfo.getLong("dateOfEnrolment")).toString()%> Firmware Version <%=version.getString("value")%>";
     //version.getString("FirmwareVersion")
 </script>
 <script type="text/javascript">
@@ -897,10 +897,10 @@
     function updateStatusCards(sincetext, alert, fuelstatus, engineStatus, load) {
         //engine status
         if (alert) {
-            $("#rain_alert").html("TRUE");
+            $("#rain_alert").html("Raining");
         }
         else {
-            $("#rain_alert").html("FALSE");
+            $("#rain_alert").html("Not raining");
         }
 
         //fuel status
@@ -917,10 +917,10 @@
 
         //engine status
         if (engineStatus) {
-            $("#engine_status").html("TRUE");
+            $("#engine_status").html("Idle");
         }
         else {
-            $("#engine_status").html("FALSE");
+            $("#engine_status").html("Running");
         }
 
         //load status
@@ -979,23 +979,47 @@
 
     function upgradeFirmware() {
         var url = $("#firmwareUrl").val();
-        console.log('firmware url: ' + url);
-        var success = function () {
-
-        };
+        console.log('firmware url: '+url);
+        //var jsonPayload = {"deviceIdentifiers":["<%=id%>"],"operation":{"code":"EXEC_PLAN","type":"PROFILE","status":"PENDING","control":"REPEAT","payLoad":url,"enabled":true}};
+        $.ajax({
+                   type: "POST",
+                   url: "invoker/execute",
+                   data: {
+                       "uri": "/devices/TRACTORHUB/operations",
+                       "method": "POST",
+                       "payload": '{"deviceIdentifiers":["<%=id%>"],"operation":{"code":"FIRMWARE_UPGRADE","type":"PROFILE","status":"PENDING","control":"REPEAT","payLoad":"'+url+'","enabled":true}}'
+                   },
+                   success : function(data){
+                       $('#upgradeFirmware').modal('hide');
+                   },
+                   error : function(data){
+                       $('#upgradeFirmware').modal('hide');
+                       $('#errorModal').modal('show');
+                   }
+               });
 
     }
-
     function uploadConfiguration() {
         var executionPlan = $("#executionPlan").val();
-        console.log('exec plan : ' + executionPlan);
-        var success = function () {
-
-        };
+        console.log('exec plan : '+executionPlan);
+        $.ajax({
+                   type: "POST",
+                   url: "invoker/execute",
+                   data: {
+                       "uri": "/devices/TRACTORHUB/operations",
+                       "method": "POST",
+                       "payload": '{"deviceIdentifiers":["<%=id%>"],"operation":{"code":"EXEC_PLAN","type":"PROFILE","status":"PENDING","control":"REPEAT","payLoad":"' + executionPlan + '","enabled":true}}'
+                   },
+                   success : function(data){
+                       $('#upgradeConfiguration').modal('hide');
+                   },
+                   error : function(data){
+                       $('#upgradeConfiguration').modal('hide');
+                       $('#errorModal').modal('show');
+                   }
+               });
 
     }
-
-
 
 </script>
 
