@@ -42,7 +42,7 @@ import java.util.Map;
                                 "This is a mandatory parameter.",
                         type = {DataType.STRING},
                         dynamic = true),
-                },
+        },
         examples = @Example(description = "TBD", syntax = "TBD")
 )
 
@@ -74,7 +74,7 @@ public class EdgeResponseSink extends Sink {
     public void publish(Object o, DynamicOptions dynamicOptions) throws ConnectionUnavailableException {
 
         specificTopic = topicOption.getValue(dynamicOptions);
-        topic = this.deviceTopic+this.specificTopic;
+        topic = this.deviceTopic + this.specificTopic;
         try {
             JSONObject jObject = new JSONObject(o.toString());
             JSONObject event = jObject.getJSONObject("event");
@@ -84,29 +84,29 @@ public class EdgeResponseSink extends Sink {
             try {
                 jsonMetaData.put("owner", LocalRegistry.getOwnerNameSiddhi());
             } catch (JSONException e) {
-                Log.e("EdgeResponseSink","Error while inserting values to JSON object");
+                Log.e("EdgeResponseSink", "Error while inserting values to JSON object");
             }
             try {
                 jsonMetaData.put("deviceId", LocalRegistry.getDeviceIDSiddhi());
             } catch (JSONException e) {
-                Log.e("EdgeResponseSink","Error while inserting values to JSON object");
+                Log.e("EdgeResponseSink", "Error while inserting values to JSON object");
             }
 
             try {
                 jsonMetaData.put("deviceType", TVConstants.DEVICE_TYPE);
             } catch (JSONException e) {
-                Log.e("EdgeResponseSink","Error while inserting values to JSON object");
+                Log.e("EdgeResponseSink", "Error while inserting values to JSON object");
             }
 
             try {
                 jsonMetaData.put("time", Calendar.getInstance().getTime().getTime());
             } catch (JSONException e) {
-                Log.e("EdgeResponseSink","Error while inserting values to JSON object");
+                Log.e("EdgeResponseSink", "Error while inserting values to JSON object");
             }
             try {
                 jsonEvent.put("metaData", jsonMetaData);
             } catch (JSONException e) {
-                Log.e("EdgeResponseSink","Error while inserting values to JSON object");
+                Log.e("EdgeResponseSink", "Error while inserting values to JSON object");
             }
 
             JSONObject payload = new JSONObject();
@@ -117,7 +117,7 @@ public class EdgeResponseSink extends Sink {
             try {
                 jsonEvent.put("payloadData", payload);
             } catch (JSONException e) {
-                Log.e("EdgeResponseSink","Error while inserting values to JSON object");
+                Log.e("EdgeResponseSink", "Error while inserting values to JSON object");
             }
 
             JSONObject wrapper = new JSONObject();
@@ -125,30 +125,30 @@ public class EdgeResponseSink extends Sink {
 
             if (androidTVMQTTHandler != null) {
                 if (androidTVMQTTHandler.isConnected()) {
-                    androidTVMQTTHandler.publishDeviceData(wrapper.toString(),topic);
+                    androidTVMQTTHandler.publishDeviceData(wrapper.toString(), topic);
                 } else {
                     //events should be persisted if persisting is enabled
                     Log.i("PublishStats", "Connection not available");
                 }
-            }else {
-                Log.i("EdgeResponseSink","androidtv mqtt handler not initialized");
+            } else {
+                Log.i("EdgeResponseSink", "androidtv mqtt handler not initialized");
             }
 
 
         } catch (JSONException e) {
-            Log.e("EdgeResponseSink","JSONException was thrown");
+            Log.e("EdgeResponseSink", "JSONException was thrown");
         } catch (TransportHandlerException e) {
-            Log.e("EdgeResponseSink","TransportHandlerException was thrown");
+            Log.e("EdgeResponseSink", "TransportHandlerException was thrown");
         }
     }
 
     @Override
     public void connect() throws ConnectionUnavailableException {
-        if(DeviceManagementService.getAndroidTVMQTTHandler()!=null){
-            this.androidTVMQTTHandler = DeviceManagementService.getAndroidTVMQTTHandler();
-            this.deviceTopic=androidTVMQTTHandler.getTopicPrefix();
-        }else{
-            Log.i("EdgeResponseSink","androidTVMQTTHandler is not initialized");
+        if (DeviceManagementService.getAndroidTVMQTTHandler() != null) {
+            androidTVMQTTHandler = DeviceManagementService.getAndroidTVMQTTHandler();
+            this.deviceTopic = androidTVMQTTHandler.getTopicPrefix();
+        } else {
+            Log.i("EdgeResponseSink", "androidTVMQTTHandler is not initialized");
         }
 
     }

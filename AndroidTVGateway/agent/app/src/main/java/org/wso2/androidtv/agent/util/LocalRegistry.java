@@ -46,6 +46,7 @@ public class LocalRegistry {
     private static final String IS_ENROLLED_KEY = "enrolledKey";
     private static final String TENANT_DOMAIN_KEY = "tenantDomainKey";
     private static final String EDGE_DEVICES_KEY = "edgeDevicesKey";
+    private static final String EXECUTION_PLAN_KEY = "executionPlanKey";
     private static boolean exists = false;
     private static String username;
     private static String deviceId;
@@ -57,6 +58,7 @@ public class LocalRegistry {
     private static String consumerKey;
     private static String consumerSecret;
     private static String mqttEndpoint;
+    private static String executionPlan;
     private static boolean enrolled;
     private static String tenantDomain;
 
@@ -299,12 +301,23 @@ public class LocalRegistry {
         return LocalRegistry.mqttEndpoint;
     }
 
-    public static String getMqttEndpointSiddhi(){
-        String url= null;
-        if(LocalRegistry.mqttEndpoint!=null){
-            url=LocalRegistry.mqttEndpoint;
+    public static void addSiddhiExecutionPlan(Context context, String executionPlan) {
+        SharedPreferences sharedpreferences = context.getSharedPreferences(SENSE_SHARED_PREFERENCES, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedpreferences.edit();
+        editor.putString(EXECUTION_PLAN_KEY, executionPlan);
+        editor.apply();
+        LocalRegistry.executionPlan = executionPlan;
+    }
+
+    public static String getSiddhiExecutionPlan(Context context) {
+        String executionPlan = null;
+        if (LocalRegistry.executionPlan != null) {
+            executionPlan = LocalRegistry.executionPlan;
+        } else {
+            SharedPreferences sharedpreferences = context.getSharedPreferences(SENSE_SHARED_PREFERENCES, Context.MODE_PRIVATE);
+            LocalRegistry.executionPlan = sharedpreferences.getString(EXECUTION_PLAN_KEY, "");
         }
-        return  url;
+        return executionPlan;
     }
 
     public static void setEnrolled(Context context, boolean enrolled) {

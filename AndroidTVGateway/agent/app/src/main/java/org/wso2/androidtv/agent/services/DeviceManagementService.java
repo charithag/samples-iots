@@ -18,7 +18,9 @@
 
 package org.wso2.androidtv.agent.services;
 
+import android.app.AlarmManager;
 import android.app.DownloadManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -31,6 +33,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -41,6 +44,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.wso2.androidtv.agent.DeviceStartUpReceiver;
 import org.wso2.androidtv.agent.MessageActivity;
 import org.wso2.androidtv.agent.R;
 import org.wso2.androidtv.agent.VideoActivity;
@@ -48,11 +52,9 @@ import org.wso2.androidtv.agent.constants.TVConstants;
 import org.wso2.androidtv.agent.h2cache.H2Connection;
 import org.wso2.androidtv.agent.mqtt.AndroidTVMQTTHandler;
 import org.wso2.androidtv.agent.mqtt.MessageReceivedCallback;
-import org.wso2.androidtv.agent.cache.CacheEntry;
-import org.wso2.androidtv.agent.mqtt.transport.TransportHandlerException;
 import org.wso2.androidtv.agent.subscribers.EdgeSourceSubscriber;
-import org.wso2.androidtv.agent.util.AndroidTVUtils;
 import org.wso2.androidtv.agent.util.LocalRegistry;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -60,7 +62,6 @@ import java.lang.ref.WeakReference;
 import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -76,7 +77,6 @@ public class DeviceManagementService extends Service {
     private UsbServiceHandler usbServiceHandler;
     private boolean hasPendingConfigDownload = false;
     private long downloadId = -1;
-    private CacheManagementService cacheManagementService;
 
     private static volatile boolean waitFlag = false;
     private static volatile boolean isSyncPaused = false;
@@ -84,8 +84,6 @@ public class DeviceManagementService extends Service {
     private static volatile boolean isInCriticalPath = false;
     private static volatile String serialOfCurrentEdgeDevice = "";
     private static volatile String incomingMessage = "";
-    private static volatile String sendingMessage = "";
-    private static volatile boolean isCacheEnabled = false;
     private static ArrayList<EdgeSourceSubscriber> sourceSubscribers = new ArrayList<>();
 
 
@@ -257,104 +255,100 @@ public class DeviceManagementService extends Service {
 
     @Override
     public void onCreate() {
-       androidTVMQTTHandler = new AndroidTVMQTTHandler(this, new MessageReceivedCallback() {
+        androidTVMQTTHandler = new AndroidTVMQTTHandler(this, new MessageReceivedCallback() {
             @Override
             public void onMessageReceived(JSONObject message) throws JSONException {
                 performAction(message.getString("action"), message.getString("payload"));
             }
         });
-       androidTVMQTTHandler.connect();
+        androidTVMQTTHandler.connect();
 
-       H2Connection h2Connection = new H2Connection(this);
+        H2Connection h2Connection = new H2Connection(this);
         try {
             h2Connection.initializeConnection();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-
 
         usbServiceHandler = new UsbServiceHandler(this);
         /*Start UsbService(if it was not started before) and Bind it*/
         startService(UsbService.class, usbConnection, null);
+
+        String executionPlan = LocalRegistry.getSiddhiExecutionPlan(this);
+        Log.w(TAG, "EP " + executionPlan);
+        if (executionPlan == null) {
+            executionPlan = "@app:name('edgeAnalytics') \n" +
+                    "\n" +
+                    "@source(type='textEdge', @map(type='text', fail.on.missing.attribute = 'true' , regex.T=\"\"\"\"t\":(\\w+)\"\"\", regex.H=\"\"\"\"h\":(\\w+)\"\"\", regex.A=\"\"\"\"a\":(\\w+)\"\"\", regex.W=\"\"\"\"w\":(\\w+)\"\"\", regex.D=\"\"\"\"d\":(\\w+)\"\"\", regex.L=\"\"\"\"l\":(\\w+)\"\"\", @attributes(temperature = 'T', humidity = 'H', ac = 'A', window = 'W', door = 'D', light = 'L')))\n" +
+                    "define stream edgeDeviceEventStream (ac int, window int, light int, temperature int, humidity int, door int); \n" +
+                    "\n" +
+                    "@source(type='textEdge',@map(type='text', fail.on.missing.attribute= 'true',regex.L='(LON)',@attributes(lightOn = 'L')))\n" +
+                    "define stream lightOnStream (lightOn String);\n" +
+                    "\n" +
+                    "@source(type='textEdge',@map(type='text', fail.on.missing.attribute= 'true',regex.L='(LOFF)',@attributes(lightOff = 'L')))\n" +
+                    "define stream lightOffStream (lightOff String);\n" +
+                    "\n" +
+                    "@sink(type='edgeGateway',topic='AC',@map(type='json'))\n" +
+                    "define stream acOutputStream (AC int);\n" +
+                    "\n" +
+                    "@sink(type='edgeGateway',topic='HUMIDITY',@map(type='json'))\n" +
+                    "define stream humidityOutputStream (HUMIDITY double);\n" +
+                    "\n" +
+                    "@sink(type='edgeGateway',topic='TEMP',@map(type='json'))\n" +
+                    "define stream temperatureOutputStream (TEMP double);\n" +
+                    "\n" +
+                    "@sink(type='edgeGateway',topic='WINDOW',@map(type='json'))\n" +
+                    "define stream windowOutputStream (WINDOW int);\n" +
+                    "\n" +
+                    "@sink(type='edgeGateway',topic='DOOR',@map(type='json'))\n" +
+                    "define stream doorOutputStream (DOOR int);\n" +
+                    "\n" +
+                    "@sink(type='edgeResponse',topic='at_response',@map(type='json'))\n" +
+                    "define stream lightStatusOutputStream (lightStatus String);\n" +
+                    "\n" +
+                    "@config(async = 'true') \n" +
+                    "define stream alertStream (alertMessage String);\n" +
+                    "\n" +
+                    "from every ae1=edgeDeviceEventStream, ae2=edgeDeviceEventStream[ae1.ac != ac] \n" +
+                    "select ae2.ac as AC insert into acIntermediateOutputStream;\n" +
+                    "\n" +
+                    "from acIntermediateOutputStream\n" +
+                    "select * insert into acOutputStream;  \n" +
+                    "\n" +
+                    "from edgeDeviceEventStream#window.timeBatch(30 sec) \n" +
+                    "select ac as AC output last every 30 sec insert into acOutputStream; \n" +
+                    "\n" +
+                    "from every we1=edgeDeviceEventStream, we2=edgeDeviceEventStream[we1.window != window] \n" +
+                    "select we2.window as WINDOW insert into windowIntermediateOutputStream; \n" +
+                    "\n" +
+                    "from windowIntermediateOutputStream\n" +
+                    "select * insert into windowOutputStream;  \n" +
+                    "\n" +
+                    "from edgeDeviceEventStream#window.timeBatch(30 sec) \n" +
+                    "select window as WINDOW output last every 30 sec insert into windowOutputStream;   \n" +
+                    "\n" +
+                    "from every de1=edgeDeviceEventStream, de2=edgeDeviceEventStream[de1.door != door] \n" +
+                    "select de2.door as DOOR insert into doorOutputStream; \n" +
+                    "\n" +
+                    "from edgeDeviceEventStream#window.timeBatch(30 sec) \n" +
+                    "select door as DOOR output last every 30 sec insert into doorOutputStream;\n" +
+                    "\n" +
+                    "from edgeDeviceEventStream#window.timeBatch(30 sec) \n" +
+                    "select avg(humidity) as HUMIDITY insert into humidityOutputStream;  \n" +
+                    "\n" +
+                    "from edgeDeviceEventStream#window.timeBatch(30 sec) \n" +
+                    "select avg(temperature) as TEMP insert into temperatureOutputStream;   \n" +
+                    "\n" +
+                    "from windowIntermediateOutputStream[WINDOW == 1]#window.length(1) as W join acIntermediateOutputStream[AC == 1]#window.length(1) as A on W.WINDOW == 1 and A.AC == 1\n" +
+                    "select 'Please turn off AC or close the window.' as alertMessage insert into alertStream; \n" +
+                    "\n" +
+                    "from lightOnStream \n" +
+                    "select 'Light On' as lightStatus insert into lightStatusOutputStream;\n" +
+                    "\n" +
+                    "from lightOffStream \n" +
+                    "select 'Light Off' as lightStatus insert into lightStatusOutputStream;\n";
+        }
         Bundle extras = new Bundle();
-
-        String executionPlan = "@app:name('edgeAnalytics') " +
-                "@source(type='textEdge', @map(type='text', fail.on.missing.attribute = 'true' ," +
-                " regex" +
-                ".T=\"\"\"\"t\":(\\w+)\"\"\", regex"+".H=\"\"\"\"h\":(\\w+)\"\"\", " +
-                "regex"+".A=\"\"\"\"a\":(\\w+)\"\"\", regex"+".W=\"\"\"\"w\":(\\w+)\"\"\", " +
-                "regex"+".K=\"\"\"\"k\":(\\w+)\"\"\", regex"+".L=\"\"\"\"l\":(\\w+)\"\"\", " +
-                "@attributes(temperature = 'T', humidity = 'H', ac = 'A', window = 'W', " +
-                "keycard = 'K', light = 'L')))"+
-                "define stream edgeDeviceEventStream " +
-                "(ac Float, window float, light float, temperature float, humidity float," +
-                " keycard float); " +
-                "@source(type='textEdge',@map(type='text', fail.on.missing.attribute= 'true'," +
-                "regex" +
-                ".L='(LON)'," +
-                "@attributes(lightOn = 'L')))" +
-                "define stream lightOnStream (lightOn String);"+
-
-                "@source(type='textEdge',@map(type='text', fail.on.missing.attribute= 'true'," +
-                "regex" +
-                ".L='(LOFF)'," +
-                "@attributes(lightOff = 'L')))" +
-                "define stream lightOffStream (lightOff String);"+
-
-                "@sink(type='edgeGateway'," +
-                "topic='AC'," +
-                "@map(type='json'))"+"define stream acOutputStream (AC Float);"+
-                "@sink(type='edgeGateway'," +
-                "topic='HUMIDITY'," +
-                "@map(type='json'))"+"define stream humidityOutputStream (HUMIDITY Float);"+
-                "@sink(type='edgeGateway'," +
-                "topic='TEMP'," +
-                "@map(type='json'))"+"define stream temperatureOutputStream (TEMP Float);"+
-                "@sink(type='edgeGateway'," +
-                "topic='WINDOW'," +
-                "@map(type='json'))"+"define stream windowOutputStream (WINDOW Float);"+
-
-                "@sink(type='edgeResponse',topic='at_response',@map(type='json'))" +
-                "define stream lightOnOutputStream (lightOnOutput String);"+
-
-                "@sink(type='edgeResponse',topic='at_response',@map(type='json'))" +
-                "define stream lightOffOutputStream (lightOffOutput String);"+
-
-                "@config(async = 'true') define stream alertStream (alertMessage String);"+
-
-                "from every ae1=edgeDeviceEventStream, ae2=edgeDeviceEventStream[ae1.ac != ac ] " +
-                "select ae2.ac as AC insert into acOutputStream; "+
-
-                "from every he1=edgeDeviceEventStream," +
-                " he2=edgeDeviceEventStream[he1.humidity != humidity ] " +
-                "select he2.humidity as HUMIDITY insert into humidityOutputStream; "+
-
-                "from every te1=edgeDeviceEventStream, " +
-                "te2=edgeDeviceEventStream[te1.temperature != temperature ] " +
-                "select te2.temperature as TEMP insert into temperatureOutputStream;"+
-
-                "from every we1=edgeDeviceEventStream, " +
-                "we2=edgeDeviceEventStream[we1.window != window ] " +
-                "select we2.window as WINDOW insert into windowOutputStream; "+
-
-                "from edgeDeviceEventStream[(1 == ac and 0 == window and 0 == light) " +
-                "and 0 == keycard] " +
-                "select 'AC is on' as alertMessage insert into alertStream; "+
-
-                "from edgeDeviceEventStream[(0 == ac and 0 == window and 1 == light) " +
-                "and 0 == keycard] " +
-                "select 'Light is on' as alertMessage insert into alertStream; " +
-
-                "from lightOnStream select 'Light On' as lightOnOutput insert into " +
-                "lightOnOutputStream;"+
-
-                "from lightOffStream select 'Light Off' as lightOffOutput insert into " +
-                "lightOffOutputStream;";
-
-
-
         extras.putString(TVConstants.EXECUTION_PLAN_EXTRA, executionPlan);
         startService(SiddhiService.class, siddhiConnection, extras);
 
@@ -372,9 +366,6 @@ public class DeviceManagementService extends Service {
         if (hasPendingConfigDownload) {
             unregisterReceiver(configDownloadReceiver);
             hasPendingConfigDownload = false;
-        }
-        if (cacheManagementService != null) {
-            cacheManagementService.removeAllCacheEntries();
         }
     }
 
@@ -406,9 +397,14 @@ public class DeviceManagementService extends Service {
                 sendCommandToEdgeDevice(payload);
                 break;
             case "edgeQuery":
-                Bundle extras = new Bundle();
-                extras.putString(TVConstants.EXECUTION_PLAN_EXTRA, payload);
-                startService(SiddhiService.class, siddhiConnection, extras);
+                LocalRegistry.addSiddhiExecutionPlan(getApplicationContext(), payload);
+                Intent intentWithData = new Intent(getApplicationContext(), DeviceStartUpReceiver.class);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, intentWithData, 0);
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, 2000, pendingIntent);
+                Intent startServiceIntent = new Intent(this, SiddhiService.class);
+                getApplicationContext().stopService(startServiceIntent);
+                stopSelf();
                 break;
         }
     }
@@ -472,17 +468,13 @@ public class DeviceManagementService extends Service {
         } else {
             Log.i(TAG, "Message> " + message);
 
-            /*the recieving message is published into the Siddhi Sources
+            /*the receiving message is published into the Siddhi Sources
             * via the source subscribers*/
             for (EdgeSourceSubscriber sourceSubscriber : sourceSubscribers) {
                 sourceSubscriber.recieveEvent(message, null);
             }
         }
 
-    }
-
-    private String getDeviceId() {
-        return AndroidTVUtils.generateDeviceId(getBaseContext(), getContentResolver());
     }
 
     private void startService(Class<?> service, ServiceConnection serviceConnection, Bundle extras) {
@@ -536,66 +528,6 @@ public class DeviceManagementService extends Service {
         }
     }
 
-
-    private void runCacheManagementService() {
-        cacheManagementService = new CacheManagementService(getApplicationContext());
-        final long threadWaitingTime = 10000; //10 seconds
-        if (cacheManagementService.getNumberOfEntries() > 0) {
-            isCacheEnabled = true;
-        }
-
-        Log.d("CacheManagementService", "Background process is started");
-        Thread cacheThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    Log.d("CacheManagementService", "Searching for a connection");
-                    if (isCacheEnabled) {
-                        Log.d("CacheManagementService", "Number of cache entries: "
-                                + cacheManagementService.getNumberOfEntries());
-                        if (androidTVMQTTHandler.isConnected()) {
-                            Log.d("CacheManagementService", "Connection is established");
-                            try {
-                                publishCacheData();
-                            } catch (TransportHandlerException e) {
-                                Log.e("CacheManagementService", "Unable to publish cached data", e);
-                            }
-                        } else {
-                            Log.d("CacheManagerService", "Unable to connect to the MQTT server, " +
-                                    "hence retry in " + (threadWaitingTime) / 1000 + " seconds");
-                        }
-                    }
-                    try {
-                        Thread.sleep(threadWaitingTime);
-                    } catch (InterruptedException e) {
-                        Log.e("CacheManagementService", "Error occurred while checking cache", e);
-                    }
-                }
-            }
-        });
-        cacheThread.start();
-    }
-
-    private void publishCacheData() throws TransportHandlerException {
-        List<CacheEntry> cacheEntries = cacheManagementService.getCacheEntries();
-        Log.d("PublishCacheData", "Publishing cached data to the server");
-        for (CacheEntry entry : cacheEntries) {
-            if (androidTVMQTTHandler.isConnected()) {
-                Log.d("PublishCacheData", "Publishing cache entry: " + entry.getId());
-                androidTVMQTTHandler.publishDeviceData(entry.getMessage(), entry.getTopic());
-                cacheManagementService.removeCacheEntry(entry.getId());
-            } else {
-                break;
-            }
-        }
-        cacheEntries = cacheManagementService.getCacheEntries();
-        if (cacheEntries.size() == 0) {
-            Log.d("PublishCacheData", "Cache disabled");
-            isCacheEnabled = false;
-        }
-    }
-
-
     public static void connectToSource(EdgeSourceSubscriber sourceSubscriber) {
         sourceSubscribers.add(sourceSubscriber);
     }
@@ -604,15 +536,12 @@ public class DeviceManagementService extends Service {
         sourceSubscribers.remove(sourceSubscriber);
     }
 
-    public static AndroidTVMQTTHandler getAndroidTVMQTTHandler(){
+    public static AndroidTVMQTTHandler getAndroidTVMQTTHandler() {
         return androidTVMQTTHandler;
     }
 
-    public static String getSerialOfCurrentEdgeDevice(){
+    public static String getSerialOfCurrentEdgeDevice() {
         return serialOfCurrentEdgeDevice;
     }
-
-
-
 
 }

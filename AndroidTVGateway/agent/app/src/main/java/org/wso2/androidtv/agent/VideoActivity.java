@@ -54,13 +54,13 @@ public class VideoActivity extends Activity {
         //checks whether the URL belongs to YouTube
         boolean isYouTubeURL = Pattern.matches(checkYouTubeRegEx, url);
 
-
         if (isYouTubeURL) {
             //ID given for the video by YouTube
             String youTubeVideoID = url.substring(url.length() - 11);
             Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" +
                     youTubeVideoID));
             startActivity(appIntent);
+            finish();
         } else {
             try {
                 videoView.setVideoURI(Uri.parse(URLDecoder.decode(url, "UTF-8")));

@@ -3,7 +3,7 @@ apply plugin: 'me.champeau.gradle.antlr4'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.1"
+    buildToolsVersion '26.0.2'
     defaultConfig {
         applicationId "org.wso2.androidtv.agent"
         minSdkVersion 21
@@ -53,19 +53,19 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.0'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.0'
 
-    implementation('org.wso2.siddhi:siddhi-core:4.0.0-beta3') {
+    implementation('org.wso2.siddhi:siddhi-core:4.1.13') {
         transitive = false;
     }
-    annotationProcessor('org.wso2.siddhi:siddhi-annotations:4.0.0-beta3') {
+    annotationProcessor('org.wso2.siddhi:siddhi-annotations:4.1.13') {
         transitive = false
     }
-    implementation('org.wso2.siddhi:siddhi-annotations:4.0.0-beta3') {
+    implementation('org.wso2.siddhi:siddhi-annotations:4.1.13') {
         transitive = false
     }
-    implementation('org.wso2.siddhi:siddhi-query-api:4.0.0-beta3') {
+    implementation('org.wso2.siddhi:siddhi-query-api:4.1.13') {
         transitive = false
     }
-    implementation('org.wso2.siddhi:siddhi-query-compiler:4.0.0-beta3') {
+    implementation('org.wso2.siddhi:siddhi-query-compiler:4.1.13') {
         transitive = false
     }
 

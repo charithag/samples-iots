@@ -1,20 +1,20 @@
 package org.wso2.androidtv.agent.siddhiSinks;
 
-import android.util.EventLog;
 import android.util.Log;
-
-import net.minidev.json.parser.JSONParser;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wso2.androidtv.agent.constants.TVConstants;
+import org.wso2.androidtv.agent.mqtt.AndroidTVMQTTHandler;
 import org.wso2.androidtv.agent.mqtt.transport.TransportHandlerException;
+import org.wso2.androidtv.agent.services.DeviceManagementService;
 import org.wso2.androidtv.agent.util.LocalRegistry;
 import org.wso2.siddhi.annotation.Example;
 import org.wso2.siddhi.annotation.Extension;
 import org.wso2.siddhi.annotation.Parameter;
 import org.wso2.siddhi.annotation.util.DataType;
 import org.wso2.siddhi.core.config.SiddhiAppContext;
+import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.exception.ConnectionUnavailableException;
 import org.wso2.siddhi.core.stream.output.sink.Sink;
 import org.wso2.siddhi.core.util.config.ConfigReader;
@@ -22,14 +22,9 @@ import org.wso2.siddhi.core.util.transport.DynamicOptions;
 import org.wso2.siddhi.core.util.transport.Option;
 import org.wso2.siddhi.core.util.transport.OptionHolder;
 import org.wso2.siddhi.query.api.definition.StreamDefinition;
-import org.wso2.siddhi.core.event.Event;
 
 import java.util.Calendar;
 import java.util.Map;
-
-import org.wso2.androidtv.agent.mqtt.AndroidTVMQTTHandler;
-import org.wso2.androidtv.agent.services.DeviceManagementService;
-import org.wso2.androidtv.agent.services.CacheManagementService;
 
 /**
  * The EdgeGateway Sink is a customized Siddhi Sink.
@@ -48,18 +43,18 @@ import org.wso2.androidtv.agent.services.CacheManagementService;
         description = "This sink publishes data from edgeGateway to broker of IOT server ",
         parameters = {
                 @Parameter(
-                name = "topic",
-                description = "The topic in the broker to which the events processed by " +
-                        "WSO2 SP are published via MQTT. " +
-                        "This is a mandatory parameter.",
-                type = {DataType.STRING},
-                dynamic = true),
+                        name = "topic",
+                        description = "The topic in the broker to which the events processed by " +
+                                "WSO2 SP are published via MQTT. " +
+                                "This is a mandatory parameter.",
+                        type = {DataType.STRING},
+                        dynamic = true),
                 @Parameter(
                         name = "persist",
                         description = "The variable to decide whether " +
                                 "the data is going to be persisted" +
                                 "if the connection is unavailable." +
-                                "Default value is false" ,
+                                "Default value is false",
                         type = {DataType.BOOL},
                         optional = true,
                         defaultValue = "false",
@@ -84,14 +79,14 @@ public class EdgeGatewaySink extends Sink {
 
     @Override
     public String[] getSupportedDynamicOptions() {
-        return new String[]{MqttConstants.MESSAGE_TOPIC,MqttConstants.PERSIST};
+        return new String[]{MqttConstants.MESSAGE_TOPIC, MqttConstants.PERSIST};
 
     }
 
     @Override
     protected void init(StreamDefinition streamDefinition, OptionHolder optionHolder, ConfigReader configReader, SiddhiAppContext siddhiAppContext) {
         this.topicOption = optionHolder.validateAndGetOption(MqttConstants.MESSAGE_TOPIC);
-        this.persistOption=Boolean.parseBoolean(optionHolder.validateAndGetStaticValue(MqttConstants.PERSIST,MqttConstants.DEFAULT_PERSIST));
+        this.persistOption = Boolean.parseBoolean(optionHolder.validateAndGetStaticValue(MqttConstants.PERSIST, MqttConstants.DEFAULT_PERSIST));
     }
 
     @Override
@@ -99,7 +94,7 @@ public class EdgeGatewaySink extends Sink {
 
         try {
             specificTopic = topicOption.getValue(dynamicOptions);
-            topic=this.deviceTopic+this.specificTopic;
+            topic = this.deviceTopic + this.specificTopic;
 
             JSONObject jObject = new JSONObject(o.toString());
             JSONObject event = jObject.getJSONObject("event");
@@ -109,29 +104,29 @@ public class EdgeGatewaySink extends Sink {
             try {
                 jsonMetaData.put("owner", LocalRegistry.getOwnerNameSiddhi());
             } catch (JSONException e) {
-                Log.e("EdgeGatewaySink","Error while inserting values to JSON object");
+                Log.e("EdgeGatewaySink", "Error while inserting values to JSON object");
             }
             try {
                 jsonMetaData.put("deviceId", LocalRegistry.getDeviceIDSiddhi());
             } catch (JSONException e) {
-                Log.e("EdgeGatewaySink","Error while inserting values to JSON object");
+                Log.e("EdgeGatewaySink", "Error while inserting values to JSON object");
             }
 
             try {
                 jsonMetaData.put("deviceType", TVConstants.DEVICE_TYPE);
             } catch (JSONException e) {
-                Log.e("EdgeGatewaySink","Error while inserting values to JSON object");
+                Log.e("EdgeGatewaySink", "Error while inserting values to JSON object");
             }
 
             try {
                 jsonMetaData.put("time", Calendar.getInstance().getTime().getTime());
             } catch (JSONException e) {
-                Log.e("EdgeGatewaySink","Error while inserting values to JSON object");
+                Log.e("EdgeGatewaySink", "Error while inserting values to JSON object");
             }
             try {
                 jsonEvent.put("metaData", jsonMetaData);
             } catch (JSONException e) {
-                Log.e("EdgeGatewaySink","Error while inserting values to JSON object");
+                Log.e("EdgeGatewaySink", "Error while inserting values to JSON object");
             }
 
             JSONObject payload = new JSONObject();
@@ -148,7 +143,7 @@ public class EdgeGatewaySink extends Sink {
             try {
                 jsonEvent.put("payloadData", payload);
             } catch (JSONException e) {
-                Log.e("EdgeGatewaySink","Error while inserting values to JSON object");
+                Log.e("EdgeGatewaySink", "Error while inserting values to JSON object");
             }
 
             JSONObject wrapper = new JSONObject();
@@ -157,22 +152,21 @@ public class EdgeGatewaySink extends Sink {
             if (androidTVMQTTHandler != null) {
                 if (androidTVMQTTHandler.isConnected()) {
                     androidTVMQTTHandler.publishDeviceData(wrapper.toString(), topic);
-                    this.deviceTopic=androidTVMQTTHandler.getTopicPrefix();
                     Log.i("PublishStats", "Connection is available, published stats");
                 } else {
-                    if(persistOption) {
+                    if (persistOption) {
                         //events should be persisted if persisting is enabled
                     }
                 }
-            }else {
-                Log.i("EdgeGatewaySink","androidtv mqtt handler not initialized");
+            } else {
+                Log.i("EdgeGatewaySink", "androidtv mqtt handler not initialized");
             }
 
 
         } catch (JSONException e) {
-            Log.e("EdgeGatewaySink","JSONException was thrown");
+            Log.e("EdgeGatewaySink", "JSONException was thrown");
         } catch (TransportHandlerException e) {
-            Log.e("EdgeGatewaySink","JSONException was thrown");
+            Log.e("EdgeGatewaySink", "JSONException was thrown");
         }
 
 
@@ -181,10 +175,11 @@ public class EdgeGatewaySink extends Sink {
     @Override
     public void connect() throws ConnectionUnavailableException {
         //get the access to use the MQTT connection in the edge gateway.
-        if(DeviceManagementService.getAndroidTVMQTTHandler()!=null){
-            this.androidTVMQTTHandler = DeviceManagementService.getAndroidTVMQTTHandler();
-        }else{
-            Log.i("TAG","androidTVMQTTHandler is not initialized");
+        if (DeviceManagementService.getAndroidTVMQTTHandler() != null) {
+            androidTVMQTTHandler = DeviceManagementService.getAndroidTVMQTTHandler();
+            this.deviceTopic = androidTVMQTTHandler.getTopicPrefix();
+        } else {
+            Log.i("TAG", "androidTVMQTTHandler is not initialized");
         }
 
     }

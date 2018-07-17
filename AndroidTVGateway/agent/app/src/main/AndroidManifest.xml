@@ -16,10 +16,6 @@
     <uses-permission android:name="android.permission.ACCESS_DOWNLOAD_MANAGER_ADVANCED" />
     <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
 
-
-
-
-
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false" />
@@ -66,9 +62,6 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="landscape"
             android:theme="@style/FullscreenTheme" />
-
-
-
 
         <service
             android:name=".services.UsbService"
